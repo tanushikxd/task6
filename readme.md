@@ -166,5 +166,3 @@ Speed: ~7400 users/sec
 Additional note
 
 Random generation is separated from formatting logic, and deterministic approach allows reproducible results based on seed, batch and index.
-
-mysql -h YOUR_HOST -P YOUR_PORT -u YOUR_USER -p YOUR_DATABASE < schema.sql
