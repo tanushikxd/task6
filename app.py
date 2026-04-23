@@ -40,6 +40,7 @@
 from flask import Flask, request, render_template
 import mysql.connector
 import os
+import time
 
 app = Flask(__name__)
 
@@ -70,6 +71,7 @@ def index():
         conn = get_connection()
         cursor = conn.cursor()
 
+        # ✅ 4 params (must match SQL procedure)
         cursor.callproc("generate_batch", [seed, batch, locale, 10])
 
         results = []
@@ -82,13 +84,13 @@ def index():
         return render_template("index.html", data=results, batch=batch)
 
     except Exception as e:
+        print("INDEX ERROR:", e)
         return f"ERROR: {str(e)}"
+
 
 @app.route("/benchmark")
 def benchmark():
     try:
-        import time
-
         conn = get_connection()
         cursor = conn.cursor()
 
@@ -97,10 +99,10 @@ def benchmark():
 
         for i in range(100):
             cursor.callproc("generate_batch", [1, i, "en_US", 10])
+
             for result in cursor.stored_results():
                 rows = result.fetchall()
                 total_users += len(rows)
-            cursor.reset()
 
         end = time.time()
 
@@ -108,16 +110,21 @@ def benchmark():
         conn.close()
 
         duration = end - start
-        speed = total_users / duration
+        speed = total_users / duration if duration > 0 else 0
 
         return f"""
+        <h2>Benchmark Results</h2>
         Total users: {total_users}<br>
         Time: {duration:.2f} sec<br>
         Speed: {speed:.2f} users/sec
         """
 
     except Exception as e:
+        print("BENCHMARK ERROR:", e)
         return f"BENCHMARK ERROR: {str(e)}"
 
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
 # if __name__ == "__main__":
 #     app.run(host="0.0.0.0", port=5000)
