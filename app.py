@@ -87,127 +87,113 @@
 # # if __name__ == "__main__":
 # #     app.run(host="0.0.0.0", port=5000)
 
-# from flask import Flask, request, render_template
-# import mysql.connector
-# import os
-# import traceback
+from flask import Flask, request, render_template
+import mysql.connector
+import os
+import traceback
 
-# app = Flask(__name__)
-
-# # 🔍 Debug startup (visible in Render logs)
-# print("Starting app...")
-# print("DB_HOST:", os.getenv("DB_HOST"))
-# print("DB_PORT:", os.getenv("DB_PORT"))
-# print("DB_USER:", os.getenv("DB_USER"))
-# print("DB_NAME:", os.getenv("DB_NAME"))
-
-
-# def get_connection():
-#     return mysql.connector.connect(
-#         host=os.getenv("DB_HOST"),
-#         port=int(os.getenv("DB_PORT") or 3306),  # ✅ safe fallback
-#         user=os.getenv("DB_USER"),
-#         password=os.getenv("DB_PASSWORD"),
-#         database=os.getenv("DB_NAME"),
-#         ssl_disabled=False
-#     )
-
-
-# # ✅ Simple test route (VERY IMPORTANT for debugging)
-# @app.route("/test")
-# def test():
-#     return "OK"
-
-
-# # =========================
-# # MAIN PAGE
-# # =========================
-# @app.route("/", methods=["GET", "POST"])
-# def index():
-#     try:
-#         locale = request.form.get("locale", "en_US")
-#         seed = int(request.form.get("seed") or 1)
-#         batch = int(request.form.get("batch") or 0)
-
-#         action = request.form.get("action")
-
-#         if action == "generate":
-#             batch = 0
-#         elif action == "next":
-#             batch += 1
-
-#         conn = get_connection()
-#         cursor = conn.cursor()
-
-#         # ✅ SAFE CALL (no callproc)
-#         cursor.execute(
-#             "CALL generate_batch(%s, %s, %s, %s)",
-#             (seed, batch, locale, 10)
-#         )
-
-#         results = cursor.fetchall()
-
-#         cursor.close()
-#         conn.close()
-
-#         return render_template("index.html", data=results, batch=batch)
-
-#     except Exception:
-#         return f"<pre>{traceback.format_exc()}</pre>"
-
-
-# # =========================
-# # BENCHMARK
-# # =========================
-# @app.route("/benchmark")
-# def benchmark():
-#     try:
-#         import time
-
-#         start = time.time()
-#         total_users = 0
-
-#         for i in range(20):  # keep safe for Render
-#             conn = get_connection()
-#             cursor = conn.cursor()
-
-#             cursor.execute(
-#                 "CALL generate_batch(%s, %s, %s, %s)",
-#                 (1, i, "en_US", 10)
-#             )
-
-#             rows = cursor.fetchall()
-#             total_users += len(rows)
-
-#             cursor.close()
-#             conn.close()
-
-#         end = time.time()
-
-#         duration = end - start
-#         speed = total_users / duration if duration > 0 else 0
-
-#         return f"""
-#         <h2>Benchmark Results</h2>
-#         Total users: {total_users}<br>
-#         Time: {duration:.2f} sec<br>
-#         Speed: {speed:.2f} users/sec
-#         """
-
-#     except Exception:
-#         return f"<pre>{traceback.format_exc()}</pre>"
-
-
-# # =========================
-# # START (required for Render)
-# # =========================
-# if __name__ == "__main__":
-#     port = int(os.environ.get("PORT", 5000))
-#     app.run(host="0.0.0.0", port=port)
-
-from flask import Flask
 app = Flask(__name__)
 
-@app.route("/")
-def home():
-    return "NEW VERSION DEPLOYED"
+# =========================
+# DB CONNECTION
+# =========================
+def get_connection():
+    return mysql.connector.connect(
+        host=os.getenv("DB_HOST"),
+        port=int(os.getenv("DB_PORT") or 3306),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        database=os.getenv("DB_NAME"),
+        ssl_disabled=False
+    )
+
+# =========================
+# TEST ROUTE (important)
+# =========================
+@app.route("/test")
+def test():
+    return "OK"
+
+# =========================
+# MAIN PAGE
+# =========================
+@app.route("/", methods=["GET", "POST"])
+def index():
+    try:
+        locale = request.form.get("locale", "en_US")
+        seed = int(request.form.get("seed") or 1)
+        batch = int(request.form.get("batch") or 0)
+
+        action = request.form.get("action")
+
+        if action == "generate":
+            batch = 0
+        elif action == "next":
+            batch += 1
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # ✅ SAFE PROCEDURE CALL
+        cursor.execute(
+            "CALL generate_batch(%s, %s, %s, %s)",
+            (seed, batch, locale, 10)
+        )
+
+        results = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        return render_template("index.html", data=results, batch=batch)
+
+    except Exception:
+        return f"<pre>{traceback.format_exc()}</pre>"
+
+# =========================
+# BENCHMARK
+# =========================
+@app.route("/benchmark")
+def benchmark():
+    try:
+        import time
+
+        start = time.time()
+        total_users = 0
+
+        for i in range(20):  # safe limit for Render
+            conn = get_connection()
+            cursor = conn.cursor()
+
+            cursor.execute(
+                "CALL generate_batch(%s, %s, %s, %s)",
+                (1, i, "en_US", 10)
+            )
+
+            rows = cursor.fetchall()
+            total_users += len(rows)
+
+            cursor.close()
+            conn.close()
+
+        end = time.time()
+
+        duration = end - start
+        speed = total_users / duration if duration > 0 else 0
+
+        return f"""
+        <h2>Benchmark Results</h2>
+        Total users: {total_users}<br>
+        Time: {duration:.2f} sec<br>
+        Speed: {speed:.2f} users/sec
+        """
+
+    except Exception:
+        return f"<pre>{traceback.format_exc()}</pre>"
+
+# =========================
+# START (Render compatible)
+# =========================
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
