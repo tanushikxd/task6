@@ -7,7 +7,9 @@
 
 <h2>Generate Fake Users</h2>
 
-<form method="POST">
+<!-- MAIN FORM -->
+<form method="POST" action="/">
+
     <label>Locale:</label>
     <select name="locale">
         <option value="en_US">English (US)</option>
@@ -17,29 +19,31 @@
     <br><br>
 
     <label>Seed:</label>
-    <input type="number" name="seed" value="1">
+    <input type="number" name="seed" value="{{ request.form.seed or 1 }}">
 
     <br><br>
 
-    <label>Batch:</label>
-    <input type="number" name="batch" value="0">
+    <!-- IMPORTANT: hidden batch stays INSIDE form -->
+    <input type="hidden" name="batch" value="{{ batch or 0 }}">
 
-    <br><br>
+    <button type="submit" name="action" value="generate">Generate</button>
+    <button type="submit" name="action" value="next">Next batch</button>
 
-        <button type="submit" name="action" value="generate">Generate</button>
-        <button type="submit" name="action" value="next">Next batch</button></form>
-        <form action="/benchmark" method="get">
-        <button type="submit">Run Benchmark</button>
 </form>
 
-        <input type="hidden" name="batch" value="{{ batch or 0 }}">
+<br>
+
+<!-- BENCHMARK (separate, correct) -->
+<form action="/benchmark" method="get">
+    <button type="submit">Run Benchmark</button>
+</form>
 
 <hr>
 
 <h3>Results:</h3>
 
 <table border="1">
-    <tr>
+<tr>
     <th>ID</th>
     <th>Full Name</th>
     <th>Email</th>

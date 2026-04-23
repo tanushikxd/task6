@@ -158,13 +158,13 @@ def benchmark():
     try:
         import time
 
+        conn = get_connection()
+        cursor = conn.cursor()
+
         start = time.time()
         total_users = 0
 
-        for i in range(20):  # safe limit for Render
-            conn = get_connection()
-            cursor = conn.cursor()
-
+        for i in range(10):  # keep small for Render
             cursor.execute(
                 "CALL generate_batch(%s, %s, %s, %s)",
                 (1, i, "en_US", 10)
@@ -173,10 +173,14 @@ def benchmark():
             rows = cursor.fetchall()
             total_users += len(rows)
 
-            cursor.close()
-            conn.close()
+            # VERY IMPORTANT
+            while cursor.nextset():
+                pass
 
         end = time.time()
+
+        cursor.close()
+        conn.close()
 
         duration = end - start
         speed = total_users / duration if duration > 0 else 0
@@ -188,9 +192,9 @@ def benchmark():
         Speed: {speed:.2f} users/sec
         """
 
-    except Exception:
+    except Exception as e:
+        import traceback
         return f"<pre>{traceback.format_exc()}</pre>"
-
 # =========================
 # START (Render compatible)
 # =========================
