@@ -86,34 +86,38 @@ def index():
 
 @app.route("/benchmark")
 def benchmark():
-    import time
+    try:
+        import time
 
-    conn = get_connection()
-    cursor = conn.cursor()
+        conn = get_connection()
+        cursor = conn.cursor()
 
-    start = time.time()
-    total_users = 0
+        start = time.time()
+        total_users = 0
 
-    for i in range(100):
-        cursor.callproc("generate_batch", [1, i, "en_US"])
-        for result in cursor.stored_results():
-            rows = result.fetchall()
-            total_users += len(rows)
-        cursor.reset()
+        for i in range(100):
+            cursor.callproc("generate_batch", [1, i, "en_US"])
+            for result in cursor.stored_results():
+                rows = result.fetchall()
+                total_users += len(rows)
+            cursor.reset()
 
-    end = time.time()
+        end = time.time()
 
-    cursor.close()
-    conn.close()
+        cursor.close()
+        conn.close()
 
-    duration = end - start
-    speed = total_users / duration
+        duration = end - start
+        speed = total_users / duration
 
-    return f"""
-    Total users: {total_users}<br>
-    Time: {duration:.2f} sec<br>
-    Speed: {speed:.2f} users/sec
-    """
+        return f"""
+        Total users: {total_users}<br>
+        Time: {duration:.2f} sec<br>
+        Speed: {speed:.2f} users/sec
+        """
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    except Exception as e:
+        return f"BENCHMARK ERROR: {str(e)}"
+
+# if __name__ == "__main__":
+#     app.run(host="0.0.0.0", port=5000)
