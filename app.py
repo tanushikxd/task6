@@ -91,23 +91,25 @@ def index():
 @app.route("/benchmark")
 def benchmark():
     try:
-        conn = get_connection()
-        cursor = conn.cursor()
+        import time
 
         start = time.time()
         total_users = 0
 
-        for i in range(100):
+        for i in range(50):  # start smaller for safety
+            conn = get_connection()
+            cursor = conn.cursor()
+
             cursor.callproc("generate_batch", [1, i, "en_US", 10])
 
             for result in cursor.stored_results():
                 rows = result.fetchall()
                 total_users += len(rows)
 
-        end = time.time()
+            cursor.close()
+            conn.close()
 
-        cursor.close()
-        conn.close()
+        end = time.time()
 
         duration = end - start
         speed = total_users / duration if duration > 0 else 0
@@ -120,11 +122,6 @@ def benchmark():
         """
 
     except Exception as e:
-        print("BENCHMARK ERROR:", e)
         return f"BENCHMARK ERROR: {str(e)}"
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
 # if __name__ == "__main__":
 #     app.run(host="0.0.0.0", port=5000)
