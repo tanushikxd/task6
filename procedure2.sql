@@ -31,8 +31,7 @@ DELIMITER //
 CREATE PROCEDURE generate_batch(
     IN seed_val INT,
     IN batch_val INT,
-    IN locale_val VARCHAR(10),
-    IN batch_size INT
+    IN locale_val VARCHAR(10)
 )
 BEGIN
 
@@ -66,19 +65,6 @@ BEGIN
     DECLARE city_offset INT;
     DECLARE house_number INT;
 
-    -- =========================
-    -- SAFETY CHECKS
-    -- =========================
-    SELECT COUNT(*) INTO total_first FROM first_names WHERE locale = locale_val;
-    SELECT COUNT(*) INTO total_last FROM last_names WHERE locale = locale_val;
-    SELECT COUNT(*) INTO street_count FROM streets WHERE locale = locale_val;
-    SELECT COUNT(*) INTO city_count FROM cities WHERE locale = locale_val;
-
-    IF total_first = 0 OR total_last = 0 THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'first_names or last_names table is empty';
-    END IF;
-
     DROP TEMPORARY TABLE IF EXISTS temp_users;
 
     CREATE TEMPORARY TABLE temp_users (
@@ -92,33 +78,33 @@ BEGIN
         longitude DOUBLE
     );
 
-    -- =========================
-    -- MAIN LOOP
-    -- =========================
-    WHILE i < batch_size DO
+    SELECT COUNT(*) INTO total_first FROM first_names WHERE locale = locale_val;
+    SELECT COUNT(*) INTO total_last FROM last_names WHERE locale = locale_val;
+    SELECT COUNT(*) INTO street_count FROM streets WHERE locale = locale_val;
+    SELECT COUNT(*) INTO city_count FROM cities WHERE locale = locale_val;
+
+    WHILE i < 10 DO
 
         -- FIRST NAME
-        CALL get_rand(seed_val, batch_val, i*10+1, 'fname', rand_num);
+        CALL get_rand(seed_val, batch_val, i, 'fname', rand_num);
         SET fname_offset = rand_num MOD total_first;
 
         SELECT name INTO fname
         FROM first_names
         WHERE locale = locale_val
-        ORDER BY name
         LIMIT 1 OFFSET fname_offset;
 
         -- LAST NAME
-        CALL get_rand(seed_val, batch_val, i*10+2, 'lname', rand_num);
+        CALL get_rand(seed_val, batch_val, i, 'lname', rand_num);
         SET lname_offset = rand_num MOD total_last;
 
         SELECT name INTO lname
         FROM last_names
         WHERE locale = locale_val
-        ORDER BY name
         LIMIT 1 OFFSET lname_offset;
 
         -- TITLE
-        CALL get_rand(seed_val, batch_val, i*10+3, 'title', rand_num);
+        CALL get_rand(seed_val, batch_val, i, 'title', rand_num);
 
         IF locale_val = 'de_DE' THEN
             IF rand_num MOD 3 = 0 THEN
@@ -145,7 +131,7 @@ BEGIN
         SET email = LOWER(CONCAT(clean_fname, '.', lname, '@example.com'));
 
         -- PHONE
-        CALL get_rand(seed_val, batch_val, i*10+4, 'phone', rand_num);
+        CALL get_rand(seed_val, batch_val, i, 'phone', rand_num);
 
         IF locale_val = 'de_DE' THEN
             SET phone = CONCAT(
@@ -162,29 +148,28 @@ BEGIN
             );
         END IF;
 
-        -- GEO (uniform distribution)
-        CALL get_rand(seed_val, batch_val, i*10+5, 'geo1', rand_num);
+        -- GEO (FIXED: assign to correct variables)
+        CALL get_rand(seed_val, batch_val, i, 'geo1', rand_num);
         SET u = (rand_num MOD 1000000) / 1000000;
 
-        CALL get_rand(seed_val, batch_val, i*10+6, 'geo2', rand_num);
+        CALL get_rand(seed_val, batch_val, i, 'geo2', rand_num);
         SET v = (rand_num MOD 1000000) / 1000000;
 
         SET latitude = DEGREES(ASIN(2 * u - 1));
         SET longitude = DEGREES(2 * PI() * v - PI());
 
         -- HOUSE NUMBER
-        CALL get_rand(seed_val, batch_val, i*10+7, 'house', rand_num);
+        CALL get_rand(seed_val, batch_val, i, 'house', rand_num);
         SET house_number = (rand_num MOD 999) + 1;
 
         -- STREET
         IF street_count > 0 THEN
-            CALL get_rand(seed_val, batch_val, i*10+8, 'street', rand_num);
+            CALL get_rand(seed_val, batch_val, i, 'street', rand_num);
             SET street_offset = rand_num MOD street_count;
 
             SELECT street_name INTO street
             FROM streets
             WHERE locale = locale_val
-            ORDER BY street_name
             LIMIT 1 OFFSET street_offset;
         ELSE
             SET street = 'Main St';
@@ -192,13 +177,12 @@ BEGIN
 
         -- CITY
         IF city_count > 0 THEN
-            CALL get_rand(seed_val, batch_val, i*10+9, 'city', rand_num);
+            CALL get_rand(seed_val, batch_val, i, 'city', rand_num);
             SET city_offset = rand_num MOD city_count;
 
             SELECT city_name INTO city
             FROM cities
             WHERE locale = locale_val
-            ORDER BY city_name
             LIMIT 1 OFFSET city_offset;
         ELSE
             SET city = 'New York';
@@ -207,7 +191,7 @@ BEGIN
         SET address = CONCAT(house_number, ' ', street, ', ', city);
 
         -- HEIGHT
-        CALL get_rand(seed_val, batch_val, i*10+10, 'height', rand_num);
+        CALL get_rand(seed_val, batch_val, i, 'height', rand_num);
         SET height = 150 + (rand_num MOD 50);
 
         -- INSERT
