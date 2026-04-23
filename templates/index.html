@@ -28,6 +28,9 @@
 
         <button type="submit" name="action" value="generate">Generate</button>
         <button type="submit" name="action" value="next">Next batch</button></form>
+        <form action="/benchmark" method="get">
+        <button type="submit">Run Benchmark</button>
+</form>
 
         <input type="hidden" name="batch" value="{{ batch or 0 }}">
 
