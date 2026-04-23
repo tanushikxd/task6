@@ -97,10 +97,10 @@ def benchmark():
 
         for i in range(100):
             cursor.callproc("generate_batch", [1, i, "en_US", 10])
-
             for result in cursor.stored_results():
                 rows = result.fetchall()
                 total_users += len(rows)
+            cursor.reset()
 
         end = time.time()
 
@@ -118,3 +118,6 @@ def benchmark():
 
     except Exception as e:
         return f"BENCHMARK ERROR: {str(e)}"
+
+# if __name__ == "__main__":
+#     app.run(host="0.0.0.0", port=5000)
