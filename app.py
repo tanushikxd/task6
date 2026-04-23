@@ -54,30 +54,34 @@ def get_connection():
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    locale = request.form.get("locale", "en_US")
-    seed = int(request.form.get("seed") or 1)
-    batch = int(request.form.get("batch") or 0)
+    try:
+        locale = request.form.get("locale", "en_US")
+        seed = int(request.form.get("seed") or 1)
+        batch = int(request.form.get("batch") or 0)
 
-    action = request.form.get("action")
+        action = request.form.get("action")
 
-    if action == "generate":
-        batch = 0
-    elif action == "next":
-        batch += 1
+        if action == "generate":
+            batch = 0
+        elif action == "next":
+            batch += 1
 
-    conn = get_connection()
-    cursor = conn.cursor()
+        conn = get_connection()
+        cursor = conn.cursor()
 
-    cursor.callproc("generate_batch", [seed, batch, locale])
+        cursor.callproc("generate_batch", [seed, batch, locale])
 
-    results = []
-    for result in cursor.stored_results():
-        results.extend(result.fetchall())
+        results = []
+        for result in cursor.stored_results():
+            results.extend(result.fetchall())
 
-    cursor.close()
-    conn.close()
+        cursor.close()
+        conn.close()
 
-    return render_template("index.html", data=results, batch=batch)
+        return render_template("index.html", data=results, batch=batch)
+
+    except Exception as e:
+        return f"ERROR: {str(e)}"
 
 @app.route("/benchmark")
 def benchmark():
