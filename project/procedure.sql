@@ -1,6 +1,3 @@
--- =========================
--- 1. HELPER PROCEDURE
--- =========================
 DROP PROCEDURE IF EXISTS get_rand;
 
 DELIMITER //
@@ -21,9 +18,6 @@ END //
 DELIMITER ;
 
 
--- =========================
--- 2. MAIN PROCEDURE
--- =========================
 DROP PROCEDURE IF EXISTS generate_batch;
 
 DELIMITER //
@@ -66,9 +60,7 @@ BEGIN
     DECLARE city_offset INT;
     DECLARE house_number INT;
 
-    -- =========================
-    -- SAFETY CHECKS
-    -- =========================
+
     SELECT COUNT(*) INTO total_first FROM first_names WHERE locale = locale_val;
     SELECT COUNT(*) INTO total_last FROM last_names WHERE locale = locale_val;
     SELECT COUNT(*) INTO street_count FROM streets WHERE locale = locale_val;
@@ -92,12 +84,8 @@ BEGIN
         longitude DOUBLE
     );
 
-    -- =========================
-    -- MAIN LOOP
-    -- =========================
     WHILE i < batch_size DO
 
-        -- FIRST NAME
         CALL get_rand(seed_val, batch_val, i*10+1, 'fname', rand_num);
         SET fname_offset = rand_num MOD total_first;
 
@@ -107,7 +95,6 @@ BEGIN
         ORDER BY name
         LIMIT 1 OFFSET fname_offset;
 
-        -- LAST NAME
         CALL get_rand(seed_val, batch_val, i*10+2, 'lname', rand_num);
         SET lname_offset = rand_num MOD total_last;
 
@@ -117,7 +104,6 @@ BEGIN
         ORDER BY name
         LIMIT 1 OFFSET lname_offset;
 
-        -- TITLE
         CALL get_rand(seed_val, batch_val, i*10+3, 'title', rand_num);
 
         IF locale_val = 'de_DE' THEN
@@ -134,17 +120,14 @@ BEGIN
             END IF;
         END IF;
 
-        -- CLEAN NAME
         SET clean_fname = fname;
         SET clean_fname = REPLACE(clean_fname, 'Mr. ', '');
         SET clean_fname = REPLACE(clean_fname, 'Ms. ', '');
         SET clean_fname = REPLACE(clean_fname, 'Herr ', '');
         SET clean_fname = REPLACE(clean_fname, 'Frau ', '');
 
-        -- EMAIL
         SET email = LOWER(CONCAT(clean_fname, '.', lname, '@example.com'));
 
-        -- PHONE
         CALL get_rand(seed_val, batch_val, i*10+4, 'phone', rand_num);
 
         IF locale_val = 'de_DE' THEN
@@ -162,7 +145,6 @@ BEGIN
             );
         END IF;
 
-        -- GEO (uniform distribution)
         CALL get_rand(seed_val, batch_val, i*10+5, 'geo1', rand_num);
         SET u = (rand_num MOD 1000000) / 1000000;
 
@@ -172,11 +154,9 @@ BEGIN
         SET latitude = DEGREES(ASIN(2 * u - 1));
         SET longitude = DEGREES(2 * PI() * v - PI());
 
-        -- HOUSE NUMBER
         CALL get_rand(seed_val, batch_val, i*10+7, 'house', rand_num);
         SET house_number = (rand_num MOD 999) + 1;
 
-        -- STREET
         IF street_count > 0 THEN
             CALL get_rand(seed_val, batch_val, i*10+8, 'street', rand_num);
             SET street_offset = rand_num MOD street_count;
@@ -190,7 +170,6 @@ BEGIN
             SET street = 'Main St';
         END IF;
 
-        -- CITY
         IF city_count > 0 THEN
             CALL get_rand(seed_val, batch_val, i*10+9, 'city', rand_num);
             SET city_offset = rand_num MOD city_count;
@@ -206,11 +185,9 @@ BEGIN
 
         SET address = CONCAT(house_number, ' ', street, ', ', city);
 
-        -- HEIGHT
         CALL get_rand(seed_val, batch_val, i*10+10, 'height', rand_num);
         SET height = 150 + (rand_num MOD 50);
 
-        -- INSERT
         INSERT INTO temp_users (
             full_name, email, phone, address, height, latitude, longitude
         )
