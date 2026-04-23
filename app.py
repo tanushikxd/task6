@@ -70,7 +70,7 @@ def index():
         conn = get_connection()
         cursor = conn.cursor()
 
-        cursor.callproc("generate_batch", [seed, batch, locale])
+        cursor.callproc("generate_batch", [seed, batch, locale, 10])
 
         results = []
         for result in cursor.stored_results():
@@ -96,7 +96,7 @@ def benchmark():
         total_users = 0
 
         for i in range(100):
-            cursor.callproc("generate_batch", [1, i, "en_US"])
+            cursor.callproc("generate_batch", [1, i, "en_US", 10])
             for result in cursor.stored_results():
                 rows = result.fetchall()
                 total_users += len(rows)
